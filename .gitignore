@@ -1,48 +1,27 @@
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
 .venv/
-venv/
-*.egg-info/
-dist/
-build/
 .pytest_cache/
+backend/.worktrace/
 
 # Node
 node_modules/
 .next/
 out/
+*.tsbuildinfo
+next-env.d.ts
 
 # Environment
 .env
 .env.local
-.env*.local
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# OS
+# OS / editors
 .DS_Store
 Thumbs.db
+.idea/
+.vscode/
 
-# Data (large files - don't commit raw data)
-data/*.csv
-data/*.xes
-data/*.json
-!data/sample_*.csv
-!data/README.md
-
-# Task pack dataset (1.6GB+ — NEVER commit this)
-Process-to-Automation Copilot Challenge/Dataset/
-Dataset/
-
-# Outputs
-outputs/
-*.bpmn
-
-# API runtime storage (uploaded files)
-backend/api/storage/
+# Raw exports stay local; only the curated demo files are committed
+data/*
+!data/demo/
