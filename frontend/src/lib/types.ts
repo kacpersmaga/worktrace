@@ -1,172 +1,268 @@
-/**
- * TypeScript interfaces matching backend API contracts.
- */
+// Mirrors backend/worktrace/schemas.py one to one.
 
-export interface UploadResponse {
-  process_id: string;
-  status: string;
-  filename: string;
+export type Severity = "critical" | "high" | "medium" | "low";
+
+export interface Signal {
+  key: string;
+  label: string;
+  value: number;
+  display: string;
+  percentile: number;
 }
 
-export interface RunLocalResponse {
-  process_id: string;
-  status: string;
-  summary: string;
-  recommendations_count: number;
-  top_recommendations: string[];
-  hint: string;
+export interface DataQuality {
+  source_format: "kyp_activity_sequence" | "event_log";
+  rows_read: number;
+  rows_dropped: Record<string, number>;
+  steps: number;
+  rows_per_step: number;
+  case_strategy: "business_id" | "work_session" | "case_column";
+  cases: number;
+  business_ids_found: number;
+  business_ids_rejected: string[];
+  steps_with_business_id: number;
+  steps_with_imputed_id: number;
+  export_metadata: Record<string, string>;
+  notes: string[];
 }
 
-export interface PipelineStatistics {
-  total_cases: number;
-  total_events: number;
-  total_activities: number;
-  total_variants: number;
-  total_users: number;
-  total_applications: number;
-  avg_case_duration_seconds: number;
-  median_case_duration_seconds: number;
-  start_date: string;
-  end_date: string;
+export interface Overview {
+  users: number;
+  cases: number;
+  steps: number;
+  activities: number;
+  applications: number;
+  start: string;
+  end: string;
+  active_days: number;
+  tracked_hours: number;
+  active_hours: number;
+  idle_hours: number;
+  median_case_minutes: number;
+  p90_case_minutes: number;
+  copy_paste_operations: number;
+  cross_app_transfers: number;
+  app_switches_per_hour: number;
 }
 
-export interface Activity {
-  name: string;
-  frequency: number;
-  avg_duration_seconds: number;
-  min_duration_seconds: number;
-  max_duration_seconds: number;
-  applications: string[];
-  performers: string[];
-  copy_paste_count: number;
-  manual_interaction_count: number;
-  context_switch_count: number;
-  category: string | null;
+export interface AppUsage {
+  app: string;
+  active_hours: number;
+  idle_hours: number;
+  steps: number;
+  share: number;
 }
 
-export interface Variant {
-  variant_id: number;
-  sequence: string[];
-  case_count: number;
-  percentage: number;
-  avg_total_duration_seconds: number;
+export interface HeatCell {
+  weekday: number;
+  hour: number;
+  active_hours: number;
 }
 
-export type BottleneckSeverity = 'low' | 'medium' | 'high' | 'critical';
-
-export interface Bottleneck {
-  from_activity: string;
-  to_activity: string;
-  avg_wait_seconds: number;
-  max_wait_seconds: number;
-  case_count: number;
-  severity: BottleneckSeverity;
-}
-
-export interface ProcessMapNode {
+export interface MapNode {
   id: string;
   label: string;
-  frequency: number;
+  app: string;
+  count: number;
+  median_seconds: number;
+  total_hours: number;
+  kind: "start" | "end" | "activity";
 }
 
-export interface ProcessMapEdge {
+export interface MapEdge {
   source: string;
   target: string;
-  weight: number;
-  avg_duration_seconds: number;
+  count: number;
+  dependency: number;
+  median_wait_seconds: number;
+  p90_wait_seconds: number;
 }
 
 export interface ProcessMap {
-  nodes: ProcessMapNode[];
-  edges: ProcessMapEdge[];
+  nodes: MapNode[];
+  edges: MapEdge[];
+  activities_shown: number;
+  activities_total: number;
+  transitions_covered: number;
 }
 
-export interface ApplicationUsage {
-  application: string;
-  total_duration_seconds: number;
-  active_duration_seconds: number;
-  passive_duration_seconds: number;
+export interface Variant {
+  id: number;
+  steps: string[];
+  cases: number;
+  share: number;
+  cumulative_share: number;
+  median_minutes: number;
+  distance_from_main: number;
 }
 
-export interface CopyPasteFlow {
+export interface Deviation {
+  kind: "skipped" | "inserted" | "replaced";
+  activity: string;
+  cases: number;
+  share: number;
+}
+
+export interface VariantAnalysis {
+  total_variants: number;
+  main_path: string[];
+  main_path_share: number;
+  top5_coverage: number;
+  variants: Variant[];
+  deviations: Deviation[];
+}
+
+export interface Bottleneck {
+  kind: "step" | "handover";
+  activity: string;
+  next_activity: string | null;
+  score: number;
+  severity: Severity;
+  hours_lost: number;
+  median_seconds: number;
+  p90_seconds: number;
+  occurrences: number;
+  cases: number;
+  signals: Signal[];
+  evidence: string[];
+}
+
+export interface ReworkLoop {
+  pattern: string[];
+  occurrences: number;
+  cases: number;
+  share_of_cases: number;
+  hours: number;
+}
+
+export interface AppSwitch {
+  from_app: string;
+  to_app: string;
+  switches: number;
+  ping_pongs: number;
+}
+
+export interface ContextSwitching {
+  switches: number;
+  switches_per_hour: number;
+  ping_pong_share: number;
+  pairs: AppSwitch[];
+}
+
+export interface ClipboardFlow {
   source_app: string;
   target_app: string;
-  count: number;
+  source_step: string;
+  target_step: string;
+  transfers: number;
+  users: number;
 }
 
-export interface PerformerStats {
+export interface AutomationCandidate {
+  activity: string;
+  app: string;
+  approach: string;
+  score: number;
+  hours_per_week: number;
+  saving_hours_per_week: number;
+  automation_rate: number;
+  executions_per_week: number;
+  signals: Signal[];
+  rationale: string[];
+}
+
+export interface Routine {
+  steps: string[];
+  occurrences: number;
+  cases: number;
+  median_seconds: number;
+  hours: number;
+}
+
+export interface Person {
   user: string;
-  total_events: number;
-  total_duration_seconds: number;
-  avg_activity_duration_seconds: number;
-  top_applications: string[];
-  activity_count: number;
+  alias: string;
+  cases: number;
+  steps: number;
+  active_hours: number;
+  idle_share: number;
+  median_case_minutes: number;
+  speed_index: number;
+  rework_rate: number;
+  switches_per_hour: number;
+  clipboard_per_hour: number;
+  top_apps: string[];
 }
 
-export interface PipelineOutput {
-  process_id: string;
-  statistics: PipelineStatistics;
-  activities: Activity[];
-  variants: Variant[];
-  bottlenecks: Bottleneck[];
-  process_map: ProcessMap;
-  application_usage: ApplicationUsage[];
-  copy_paste_flows: CopyPasteFlow[];
-  performer_stats?: PerformerStats[];
+export interface TimelineSegment {
+  app: string;
+  activity: string;
+  start: string;
+  end: string;
+  idle: boolean;
 }
 
-export type RecommendationType =
-  | 'automate'
-  | 'eliminate'
-  | 'simplify'
-  | 'parallelize'
-  | 'reassign';
-
-export type ImpactLevel = 'low' | 'medium' | 'high';
-
-export interface Recommendation {
-  id: number;
-  type: RecommendationType;
-  target: string;
-  reasoning: string;
-  impact: ImpactLevel;
-  priority: number;
-  estimated_time_saved_seconds: number;
-  affected_cases_percentage: number;
-  automation_type: string;
+export interface PersonDay {
+  alias: string;
+  date: string;
+  segments: TimelineSegment[];
 }
 
-export interface AutomationStep {
-  action: string;
-  description: string;
-  target_app?: string | null;
+export interface AnomalousCase {
+  case_id: string;
+  user: string;
+  start: string;
+  minutes: number;
+  steps: number;
+  score: number;
+  reasons: string[];
 }
 
-export interface AutomationBlueprint {
-  blueprint_id: string;
+export interface Finding {
+  tone: "warning" | "opportunity" | "info";
+  title: string;
+  detail: string;
+  tab: string;
+}
+
+export interface Analysis {
+  id: string;
   name: string;
-  target_activity: string;
-  automation_type: string;
-  trigger_description: string;
-  steps: AutomationStep[];
-  technology_stack: string[];
-  complexity: string;
-  estimated_dev_hours: number;
-  prerequisites: string[];
+  synthetic: boolean;
+  quality: DataQuality;
+  overview: Overview;
+  findings: Finding[];
+  apps: AppUsage[];
+  heatmap: HeatCell[];
+  process_map: ProcessMap;
+  variants: VariantAnalysis;
+  bottlenecks: Bottleneck[];
+  rework: ReworkLoop[];
+  switching: ContextSwitching;
+  clipboard: ClipboardFlow[];
+  automation: AutomationCandidate[];
+  routines: Routine[];
+  people: Person[];
+  timelines: PersonDay[];
+  anomalies: AnomalousCase[];
 }
 
-export interface CopilotOutput {
-  process_id: string;
-  summary: string;
-  recommendations: Recommendation[];
-  bpmn_xml: string;
-  reference_bpmn_comparison: string | null;
-  decision_rules: unknown[];
-  process_variables: unknown[];
-  blueprints?: AutomationBlueprint[];
+export interface Job {
+  id: string;
+  name: string;
+  created: string;
+  status: "running" | "done" | "failed";
+  error: string | null;
 }
 
-export interface ApiError {
-  error: string;
-  detail?: string;
+export interface Demo {
+  key: string;
+  name: string;
+  description: string;
+  synthetic: boolean;
+}
+
+export interface Explanation {
+  text: string;
+  source: "gemini" | "rules";
 }
