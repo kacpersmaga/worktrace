@@ -65,19 +65,27 @@ def test_id_shape_voting_rejects_noise():
     assert rejected == ["2026", "kypidbuser"]
 
 
-def test_imputation_fills_enclosed_steps_and_starts_new_cases_correctly():
+def test_case_attribution_follows_the_process_not_just_the_neighbours():
     minute = timedelta(minutes=1)
-    steps = pd.DataFrame({
-        "user": ["u1"] * 6,
-        "activity": ["Open email", "Enter invoice", "Update tracker", "Post", "Open email", "Enter invoice"],
-        "business_id": ["A-1", None, "A-1", "A-1", None, "B-2"],
-    })
-    steps["start"] = [T0 + minute * index for index in range(6)]
+    rows = [
+        # Two fully tagged invoices teach the model: Open -> Enter -> Request approval -> Post.
+        ("Open email", "A-1"), ("Enter invoice", "A-1"), ("Request approval", "A-1"),
+        ("Open email", "B-2"), ("Enter invoice", "B-2"), ("Request approval", "B-2"), ("Post", "B-2"), ("Post", "A-1"),
+        # C-3 is parked at approval while D-4 starts with an untagged email.
+        ("Open email", "C-3"), ("Enter invoice", "C-3"), ("Request approval", "C-3"),
+        ("Open email", None), ("Enter invoice", "D-4"),
+        # C-3's approval arrives: the untagged Post sits between D-4's steps but belongs to C-3.
+        ("Post", None), ("Request approval", "D-4"), ("Enter invoice", None),
+    ]
+    steps = pd.DataFrame({"user": "u1", "activity": [row[0] for row in rows], "business_id": [row[1] for row in rows]})
+    steps["start"] = [T0 + minute * index for index in range(len(rows))]
     steps["end"] = steps["start"] + minute * 0.9
 
     filled, count = impute_business_ids(steps)
 
-    assert filled.tolist() == ["A-1", "A-1", "A-1", "A-1", "B-2", "B-2"]
+    assert filled.iat[11] == "D-4"  # the email starts the next invoice
+    assert filled.iat[13] == "C-3"  # Post continues the invoice waiting for approval, not its neighbour
+    assert pd.isna(filled.iat[15])  # no case plausibly continues with Enter invoice after approval
     assert count == 2
 
 

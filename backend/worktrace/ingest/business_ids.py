@@ -7,12 +7,17 @@ login name or a stray number read off the screen. Two steps fix that:
 1. Shape voting. Every ID is reduced to its shape ("PRO-18472" -> "AAA-99999").
    Real case IDs in one process share a shape. A shape survives only if it is
    at least half as common as the most common one; the rest is noise.
-2. Imputation. A step without an ID that sits between two steps of the same
-   user carrying the same ID (and close in time) belongs to that case, the way
-   a person reading the log would assume. A step between two *different* cases
-   goes to the neighbour that does not have that activity yet: the "Open email"
-   right before a new invoice's first tagged step starts the new invoice, it
-   does not repeat the previous one.
+2. Case attribution. People juggle cases: an invoice waits for approval
+   while others are processed, then gets posted between two unrelated ones.
+   So a step without an ID is not simply given to its neighbours. A first-order
+   Markov model of the process is learned from the steps whose case is certain,
+   and each untagged step joins the case most likely to continue with it:
+     - one of the user's open cases, scored P(step | the case's last activity);
+     - or the case that starts right after it, scored P(its first step | step)
+       when the step is a plausible way to start a case.
+   Ties go to the case the next tagged step belongs to, then to the case that
+   has waited longest. Below MIN_PROBABILITY the step stays unassigned
+   rather than being forced into a case.
 """
 
 import re
@@ -24,6 +29,9 @@ MISSING_MARKERS = {"", "NOT_FOUND", "NONE", "NULL", "NAN", "N/A", "-1", "0"}
 MIN_SHAPE_RATIO = 0.5
 MIN_ID_LENGTH = 4
 MAX_FILL_GAP = pd.Timedelta(minutes=10)
+MAX_OPEN = pd.Timedelta(days=7)
+MIN_PROBABILITY = 0.05
+START, END = "<start>", "<end>"
 
 
 def id_shape(value: str) -> str:
@@ -46,28 +54,58 @@ def clean_business_ids(raw: pd.Series) -> tuple[pd.Series, list[str]]:
 
 
 def impute_business_ids(steps: pd.DataFrame) -> tuple[pd.Series, int]:
-    """Fill steps without an ID from the surrounding steps of the same user.
+    """Attribute steps without an ID to cases. Expects user, activity, start, end, business_id, sorted by user and start."""
+    model = transition_model(steps[steps["business_id"].notna()])
+    filled = steps["business_id"].copy()
+    for _, rows in steps.groupby("user", sort=False):
+        _attribute_user_steps(rows, filled, model)
+    return filled, int((filled.notna() & steps["business_id"].isna()).sum())
 
-    Expects columns user, activity, start, end, business_id (NaN where unknown),
-    sorted by user and start.
-    """
-    ids = steps["business_id"]
-    by_user = steps.groupby("user", sort=False)
-    previous_id = by_user["business_id"].ffill()
-    next_id = by_user["business_id"].bfill()
-    previous_seen = steps["end"].where(ids.notna()).groupby(steps["user"]).ffill()
-    next_seen = steps["start"].where(ids.notna()).groupby(steps["user"]).bfill()
-    near_previous = steps["start"] - previous_seen <= MAX_FILL_GAP
-    near_next = next_seen - steps["end"] <= MAX_FILL_GAP
 
-    known = set(zip(ids.dropna(), steps.loc[ids.notna(), "activity"]))
-    previous_has = pd.Series([pair in known for pair in zip(previous_id, steps["activity"])], index=steps.index)
-    next_has = pd.Series([pair in known for pair in zip(next_id, steps["activity"])], index=steps.index)
+def transition_model(tagged: pd.DataFrame) -> dict[tuple[str, str], float]:
+    """P(next | activity) within cases, including START -> first activity and last activity -> END."""
+    ordered = tagged.sort_values(["business_id", "start"])
+    by_case = ordered.groupby("business_id", sort=False)["activity"]
+    before = by_case.shift(1).fillna(START)
+    after = by_case.shift(-1).fillna(END)
+    pairs = pd.concat([
+        pd.DataFrame({"from": before, "to": ordered["activity"]}),
+        pd.DataFrame({"from": ordered["activity"], "to": after})[after == END],
+    ])
+    counts = pairs.value_counts()
+    return (counts / counts.groupby(level="from").transform("sum")).to_dict()
 
-    missing = ids.isna()
-    enclosed = missing & previous_id.notna() & (previous_id == next_id) & near_previous & near_next
-    to_next = missing & ~enclosed & next_id.notna() & near_next & ~next_has & (previous_has | ~near_previous)
-    to_previous = missing & ~enclosed & ~to_next & previous_id.notna() & near_previous & ~previous_has & next_has
 
-    filled = ids.where(~(enclosed | to_previous), previous_id).where(~to_next, next_id)
-    return filled, int((enclosed | to_next | to_previous).sum())
+def _attribute_user_steps(rows: pd.DataFrame, filled: pd.Series, model: dict[tuple[str, str], float]) -> None:
+    tagged = rows["business_id"].notna()
+    next_id = rows["business_id"].bfill()
+    next_activity = rows["activity"].where(tagged).bfill()
+    next_start = rows["start"].where(tagged).bfill()
+    open_cases: dict[str, tuple[str, pd.Timestamp]] = {}  # case -> (last activity, when it ended)
+
+    columns = zip(rows.index, rows["business_id"], rows["activity"], rows["start"], rows["end"], next_id, next_activity, next_start)
+    for index, case_id, activity, start, end, following_id, following_activity, following_start in columns:
+        if pd.notna(case_id):
+            open_cases[case_id] = (activity, end)
+            continue
+        upcoming = following_id if pd.notna(following_id) and following_start - end <= MAX_FILL_GAP else None
+        case = _most_likely_case(activity, start, open_cases, upcoming, following_activity, model)
+        if case is not None:
+            filled[index] = case
+            open_cases[case] = (activity, end)
+
+
+def _most_likely_case(activity: str, start: pd.Timestamp, open_cases: dict[str, tuple[str, pd.Timestamp]],
+                      upcoming: str | None, upcoming_activity: str | None, model: dict[tuple[str, str], float]) -> str | None:
+    scored = []
+    for case, (last_activity, last_end) in open_cases.items():
+        if start - last_end > MAX_OPEN:
+            continue
+        probability = model.get((last_activity, activity), 0.0)
+        scored.append((probability, case == upcoming, -last_end.value, case))
+    if upcoming is not None and upcoming not in open_cases and model.get((START, activity), 0.0) >= MIN_PROBABILITY:
+        scored.append((model.get((activity, upcoming_activity), 0.0), True, 0, upcoming))
+    if not scored:
+        return None
+    probability, _, _, case = max(scored)
+    return case if probability >= MIN_PROBABILITY else None
