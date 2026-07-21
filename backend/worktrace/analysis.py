@@ -17,6 +17,7 @@ from worktrace.mining.routines import find_routines
 from worktrace.mining.switching import analyse_switching
 from worktrace.mining.transitions import collapse_repeats
 from worktrace.mining.variants import analyse_variants
+from worktrace.mining.window import complete_cases
 from worktrace.schemas import Analysis, AppUsage, HeatCell, Overview
 
 MAX_APPS = 12
@@ -34,8 +35,11 @@ def analyse(log: EventLog, analysis_id: str, name: str, synthetic: bool = False)
     transfers = match_transfers(log.clipboard)
     weeks = max(_active_days(steps) / 5, 1 / 5)
     sessions = log.quality.case_strategy == "work_session"
+    # Sessions are bounded by breaks, never by the export window; real cases can be cut off at both ends.
+    complete, cut_off = (flow, 0) if sessions else complete_cases(flow)
+    log.quality.cases_cut_off = cut_off
 
-    overview = _overview(log, flow, transfers)
+    overview = _overview(log, flow, complete, transfers)
     switching = analyse_switching(steps)
     overview.app_switches_per_hour = switching.switches_per_hour
 
@@ -48,8 +52,8 @@ def analyse(log: EventLog, analysis_id: str, name: str, synthetic: bool = False)
         findings=[],
         apps=_app_usage(steps),
         heatmap=_heatmap(steps),
-        process_map=build_process_map(flow),
-        variants=analyse_variants(flow),
+        process_map=build_process_map(complete),
+        variants=analyse_variants(complete),
         bottlenecks=detect_bottlenecks(flow, cases_are_sessions=sessions),
         rework=find_rework_loops(flow),
         switching=switching,
@@ -58,7 +62,7 @@ def analyse(log: EventLog, analysis_id: str, name: str, synthetic: bool = False)
         routines=find_routines(flow),
         people=analyse_people(steps, flow, transfers),
         timelines=day_timelines(steps),
-        anomalies=find_anomalies(flow, steps),
+        anomalies=find_anomalies(complete, steps),
     )
     analysis.findings = headline_findings(analysis)
     return analysis, flow
@@ -68,9 +72,9 @@ def _active_days(steps: pd.DataFrame) -> int:
     return int(steps["start"].dt.date.nunique())
 
 
-def _overview(log: EventLog, flow: pd.DataFrame, transfers: pd.DataFrame) -> Overview:
+def _overview(log: EventLog, flow: pd.DataFrame, complete: pd.DataFrame, transfers: pd.DataFrame) -> Overview:
     steps = log.steps
-    span = flow.groupby("case_id").agg(start=("start", "min"), end=("end", "max"))
+    span = complete.groupby("case_id").agg(start=("start", "min"), end=("end", "max"))
     case_minutes = (span["end"] - span["start"]).dt.total_seconds() / 60
     active, idle = steps["active_s"].sum() / 3600, steps["idle_s"].sum() / 3600
     return Overview(

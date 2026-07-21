@@ -26,6 +26,7 @@ class DataQuality(BaseModel):
     rows_per_step: float
     case_strategy: CaseStrategy
     cases: int
+    cases_cut_off: int = 0
     business_ids_found: int
     business_ids_rejected: list[str]
     steps_with_business_id: float
@@ -72,6 +73,7 @@ class MapNode(BaseModel):
     label: str
     app: str
     count: int
+    cases: int
     median_seconds: float
     total_hours: float
     kind: Literal["start", "end", "activity"] = "activity"
@@ -81,17 +83,19 @@ class MapEdge(BaseModel):
     source: str
     target: str
     count: int
+    cases: int
     dependency: float
     median_wait_seconds: float
     p90_wait_seconds: float
 
 
 class ProcessMap(BaseModel):
+    """Everything the miner trusts; the dashboard's sliders and the BPMN export simplify it further."""
+
     nodes: list[MapNode]
     edges: list[MapEdge]
-    activities_shown: int
+    cases: int
     activities_total: int
-    transitions_covered: float
 
 
 class Variant(BaseModel):
@@ -195,7 +199,7 @@ class Person(BaseModel):
     active_hours: float
     idle_share: float
     median_case_minutes: float
-    speed_index: float = Field(description="Above 1 means faster than the team on the same activities")
+    speed_index: float | None = Field(description="Above 1 means faster than the team on the same activities; None with too little shared work")
     rework_rate: float
     switches_per_hour: float
     clipboard_per_hour: float
