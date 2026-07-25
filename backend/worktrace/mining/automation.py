@@ -38,13 +38,14 @@ FORMATS = {
     "predictability": percent,
 }
 
-# Share of a step's time an approach can realistically remove. Deliberately conservative.
+# Share of a step's time an approach can realistically remove once it runs, deliberately conservative:
+# people still check exceptions, fix bad extractions and handle what the rule does not cover.
 AUTOMATION_RATES = {
-    "System integration": 0.8,
-    "Document data extraction": 0.6,
-    "RPA data entry": 0.5,
-    "Workflow rule": 0.7,
-    "Assisted RPA": 0.35,
+    "System integration": 0.6,
+    "Document data extraction": 0.5,
+    "RPA data entry": 0.4,
+    "Workflow rule": 0.5,
+    "Assisted RPA": 0.25,
 }
 DOCUMENT_APPS = ("acrobat", "reader", "pdf", "scan")
 

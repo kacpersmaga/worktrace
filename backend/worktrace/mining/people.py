@@ -13,6 +13,7 @@ from worktrace.mining.switching import mark_switches
 from worktrace.schemas import Person, PersonDay, TimelineSegment
 
 MIN_SHARED_EXECUTIONS = 3
+MIN_COMPARED_EXECUTIONS = 20  # below this a speed index is noise
 MAX_SEGMENTS = 400
 
 
@@ -43,7 +44,7 @@ def analyse_people(steps: pd.DataFrame, flow: pd.DataFrame, transfers: pd.DataFr
             active_hours=round(active_hours, 2),
             idle_share=round(idle / (idle + own["active_s"].sum()), 4) if idle else 0.0,
             median_case_minutes=round(float(case_minutes.get(user, 0)), 1),
-            speed_index=round(float(speed.get(user, 1.0)), 2),
+            speed_index=round(float(speed[user]), 2) if user in speed else None,
             rework_rate=round(float(rework.get(user, 0)), 4),
             switches_per_hour=round(own["switched"].sum() / active_hours, 1) if active_hours else 0.0,
             clipboard_per_hour=round(clipboard_ops.get(user, 0) / active_hours, 1) if active_hours else 0.0,
@@ -60,6 +61,8 @@ def _speed_index(flow: pd.DataFrame) -> pd.Series:
     own["ratio"] = own["activity"].map(team) / own["median"].clip(lower=1)
     # Geometric mean, so being 2x faster and 2x slower cancels out.
     own["log_ratio"] = np.log(own["ratio"].clip(lower=0.05, upper=20))
+    enough = own.groupby("user")["size"].transform("sum") >= MIN_COMPARED_EXECUTIONS
+    own = own[enough]
     weighted = own.groupby("user").apply(lambda rows: np.average(rows["log_ratio"], weights=rows["size"]), include_groups=False)
     return np.exp(weighted)
 
