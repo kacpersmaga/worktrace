@@ -16,8 +16,12 @@ Hand-overs, where work waits between two steps of a case:
   - waiting hours      total time cases spent between A and B
   - median wait        how long a typical case waits there
 
-Each signal becomes a percentile rank among all candidates, and the score is
-their weighted average. The ranks are returned with the score, so every
+Each signal becomes a percentile rank among the candidates of the same kind,
+and the score is their weighted average. The kinds are not ranked against each
+other: work time and calendar waiting time are different units, and an hour
+of waiting overnight is not an hour of someone's work. Severity also needs
+absolute weight: a step must hold a real share of the tracked time, and a
+hand-over must sit on the path of a real share of cases. The ranks are returned with the score, so every
 number on screen can say why it is there.
 """
 
@@ -35,8 +39,9 @@ MIN_EXECUTIONS = 5
 MIN_HANDOVER_WAIT_S = 300
 MAX_BOTTLENECKS = 15
 SEVERITY_ORDER: list[Severity] = ["critical", "high", "medium", "low"]
-# (share of tracked time, highest severity allowed below that share)
-IMPACT_CEILINGS: list[tuple[float, Severity]] = [(0.01, "low"), (0.03, "medium"), (0.08, "high")]
+# (minimum share, highest severity allowed below it): of tracked time for steps, of cases for hand-overs
+STEP_CEILINGS: list[tuple[float, Severity]] = [(0.01, "low"), (0.03, "medium"), (0.08, "high")]
+HANDOVER_CEILINGS: list[tuple[float, Severity]] = [(0.02, "low"), (0.05, "medium"), (0.15, "high")]
 
 STEP_WEIGHTS = {"hours": 0.35, "idle_share": 0.15, "tail": 0.15, "rework": 0.2, "centrality": 0.15}
 STEP_LABELS = {
@@ -49,8 +54,8 @@ STEP_LABELS = {
 STEP_FORMATS = {"hours": hours, "idle_share": percent, "tail": times, "rework": percent, "centrality": decimal}
 
 HANDOVER_WEIGHTS = {"hours": 0.45, "median_wait": 0.3, "reach": 0.25}
-HANDOVER_LABELS = {"hours": "Waiting time in total", "median_wait": "Typical wait", "reach": "Cases passing through"}
-HANDOVER_FORMATS = {"hours": hours, "median_wait": human_duration, "reach": percent}
+HANDOVER_LABELS = {"hours": "Waiting in total (calendar)", "median_wait": "Typical wait", "reach": "Cases passing through"}
+HANDOVER_FORMATS = {"hours": lambda value: f"{value / 24:,.0f} days", "median_wait": human_duration, "reach": percent}
 
 
 def detect_bottlenecks(flow: pd.DataFrame, cases_are_sessions: bool = False) -> list[Bottleneck]:
@@ -64,31 +69,30 @@ def detect_bottlenecks(flow: pd.DataFrame, cases_are_sessions: bool = False) -> 
     if steps.empty and handovers.empty:
         return []
 
-    # Impact is ranked across both kinds, so an hour of waiting weighs as much as an hour of work.
-    impact = percentile_ranks(pd.concat([steps["hours"], handovers["hours"]], ignore_index=True))
     found = []
     if not steps.empty:
         ranks = steps.drop(columns=["occurrences", "cases", "median_s", "p90_s"]).apply(percentile_ranks)
-        ranks["hours"] = impact.iloc[: len(steps)].to_numpy()
         weights = STEP_WEIGHTS | ({"rework": 0.0} if cases_are_sessions else {})
         steps["score"] = weighted_score(ranks, weights)
-        found += [_step_bottleneck(name, row, ranks.loc[name], cases_are_sessions) for name, row in steps.iterrows()]
+        tracked_hours = (flow["active_s"] + flow["idle_s"]).sum() / 3600
+        for name, row in steps.iterrows():
+            bottleneck = _step_bottleneck(name, row, ranks.loc[name], cases_are_sessions)
+            bottleneck.severity = _cap(bottleneck.severity, row["hours"] / tracked_hours, STEP_CEILINGS)
+            found.append(bottleneck)
     if not handovers.empty:
         ranks = handovers[list(HANDOVER_WEIGHTS)].apply(percentile_ranks)
-        ranks["hours"] = impact.iloc[len(steps):].to_numpy()
         handovers["score"] = weighted_score(ranks, HANDOVER_WEIGHTS)
-        found += [_handover_bottleneck(key, row, ranks.loc[key]) for key, row in handovers.iterrows()]
-
-    tracked_hours = (flow["active_s"] + flow["idle_s"]).sum() / 3600
-    for bottleneck in found:
-        bottleneck.severity = _limit_by_impact(bottleneck.severity, bottleneck.hours_lost / tracked_hours)
+        for key, row in handovers.iterrows():
+            bottleneck = _handover_bottleneck(key, row, ranks.loc[key])
+            bottleneck.severity = _cap(bottleneck.severity, row["reach"], HANDOVER_CEILINGS)
+            found.append(bottleneck)
     return sorted(found, key=lambda bottleneck: bottleneck.score, reverse=True)[:MAX_BOTTLENECKS]
 
 
-def _limit_by_impact(level: Severity, share_of_time: float) -> Severity:
-    """A high rank alone is not enough: critical needs real hours behind it."""
-    for minimum_share, ceiling in IMPACT_CEILINGS:
-        if share_of_time < minimum_share and SEVERITY_ORDER.index(level) < SEVERITY_ORDER.index(ceiling):
+def _cap(level: Severity, share: float, ceilings: list[tuple[float, Severity]]) -> Severity:
+    """A high rank alone is not enough: the worst levels need real weight behind them."""
+    for minimum_share, ceiling in ceilings:
+        if share < minimum_share and SEVERITY_ORDER.index(level) < SEVERITY_ORDER.index(ceiling):
             return ceiling
     return level
 
@@ -174,7 +178,8 @@ def _handover_bottleneck(key: tuple[str, str], row: pd.Series, ranks: pd.Series)
     evidence = [
         f"Cases wait a median of {human_duration(row['median_wait'])} between these steps, "
         f"{human_duration(row['p90_wait'])} for the slowest 10%.",
-        f"{row['hours']:.1f} h of waiting in total over {int(row['occurrences'])} hand-overs.",
+        f"{row['hours'] / 24:,.0f} days of calendar time spent waiting here, over {int(row['occurrences']):,} hand-overs "
+        f"({row['reach']:.0%} of cases).",
     ]
     return Bottleneck(
         kind="handover",

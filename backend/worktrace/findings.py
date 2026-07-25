@@ -15,7 +15,7 @@ def headline_findings(analysis: Analysis) -> list[Finding]:
                 tone="warning",
                 title=f"Cases stall between “{top.activity}” and “{top.next_activity}”",
                 detail=f"A typical case waits {human_duration(top.median_seconds)} there; "
-                       f"{top.hours_lost:.0f} h of waiting in total.",
+                       f"{top.cases:,} cases waited there, {top.hours_lost / 24:,.0f} days in total.",
                 tab="bottlenecks",
             ))
         else:
