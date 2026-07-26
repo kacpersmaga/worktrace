@@ -12,7 +12,7 @@ import re
 from collections import defaultdict
 from xml.etree import ElementTree as ET
 
-from worktrace.mining.process_map import END, START
+from worktrace.mining.process_map import BPMN_ACTIVITY_SHARE, BPMN_PATH_SHARE, END, START, simplify
 from worktrace.schemas import ProcessMap
 
 BPMN_NS = "http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -20,6 +20,7 @@ ET.register_namespace("bpmn", BPMN_NS)
 
 
 def to_bpmn(process_map: ProcessMap, name: str) -> str:
+    process_map = simplify(process_map, BPMN_ACTIVITY_SHARE, BPMN_PATH_SHARE)
     builder = _BpmnBuilder(name)
     outgoing: dict[str, list[str]] = defaultdict(list)
     incoming: dict[str, list[str]] = defaultdict(list)

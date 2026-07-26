@@ -14,9 +14,10 @@ import {
   type NodeProps,
   Position,
   ReactFlow,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { count, duration } from "@/lib/format";
 import type { MapEdge, ProcessMap } from "@/lib/types";
 
@@ -44,7 +45,7 @@ const NODE_HEIGHT = 58;
 function ActivityNode({ data }: NodeProps<Node<ActivityData>>) {
   if (data.kind !== "activity") {
     return (
-      <div className="grid size-10 place-items-center rounded-full border-2 border-ink bg-surface text-[10px] font-semibold uppercase text-ink">
+      <div className="grid size-10 place-items-center rounded-full border-2 border-ink bg-surface text-[11px] font-semibold uppercase text-ink">
         {data.kind === "start" ? "▶" : "■"}
         <Handle type="target" position={Position.Top} className="!opacity-0" />
         <Handle type="source" position={Position.Bottom} className="!opacity-0" />
@@ -89,7 +90,7 @@ function FlowEdge({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targ
       {data.weight > 0.12 && (
         <EdgeLabelRenderer>
           <span
-            className="tabular pointer-events-none absolute rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10px] font-medium text-ink-2"
+            className="tabular pointer-events-none absolute rounded-md border border-line bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink-2"
             style={{ transform: `translate(-50%, -50%) translate(${labelX}px, ${labelY}px)` }}
           >
             {label}
@@ -110,16 +111,43 @@ interface ProcessGraphProps {
   highlighted: Set<string>;
 }
 
+const READABLE_ZOOM = 0.7;
+
 export function ProcessGraph({ map, metric, color, highlighted }: ProcessGraphProps) {
   const { nodes, edges } = useMemo(() => layout(map, metric, color, highlighted), [map, metric, color, highlighted]);
+  const container = useRef<HTMLDivElement>(null);
+  const flow = useRef<ReactFlowInstance<Node<ActivityData>, Edge<FlowData>> | null>(null);
+
+  // Fit the whole map when it is small enough to stay readable; otherwise start at the top at a readable zoom.
+  const frame = useCallback(() => {
+    const instance = flow.current;
+    const box = container.current?.getBoundingClientRect();
+    if (!instance || !box || nodes.length === 0) return;
+    const xs = nodes.map((node) => node.position.x);
+    const width = Math.max(...xs) - Math.min(...xs) + NODE_WIDTH;
+    const height = Math.max(...nodes.map((node) => node.position.y)) + NODE_HEIGHT;
+    const zoom = Math.min(1, (box.width - 48) / width, (box.height - 48) / height);
+    if (zoom >= READABLE_ZOOM) {
+      instance.fitView({ padding: 0.08, maxZoom: 1 });
+      return;
+    }
+    const scale = Math.max(READABLE_ZOOM, Math.min(1, (box.width - 48) / width));
+    instance.setViewport({ x: (box.width - width * scale) / 2 - Math.min(...xs) * scale, y: 24, zoom: scale });
+  }, [nodes]);
+
+  useEffect(frame, [frame]);
+
   return (
+    <div ref={container} className="h-full w-full">
     <ReactFlow
       nodes={nodes}
       edges={edges}
       nodeTypes={nodeTypes}
       edgeTypes={edgeTypes}
-      fitView
-      fitViewOptions={{ padding: 0.15 }}
+      onInit={(instance) => {
+        flow.current = instance;
+        frame();
+      }}
       minZoom={0.2}
       nodesDraggable
       nodesConnectable={false}
@@ -128,12 +156,13 @@ export function ProcessGraph({ map, metric, color, highlighted }: ProcessGraphPr
       <Background gap={20} size={1} color="var(--line)" />
       <Controls showInteractive={false} position="bottom-right" />
     </ReactFlow>
+    </div>
   );
 }
 
 function layout(map: ProcessMap, metric: EdgeMetric, color: (app: string) => string, highlighted: Set<string>) {
   const graph = new dagre.graphlib.Graph();
-  graph.setGraph({ rankdir: "TB", nodesep: 36, ranksep: 64 });
+  graph.setGraph({ rankdir: "TB", nodesep: 40, ranksep: 56 });
   graph.setDefaultEdgeLabel(() => ({}));
   map.nodes.forEach((node) =>
     graph.setNode(node.id, node.kind === "activity" ? { width: NODE_WIDTH, height: NODE_HEIGHT } : { width: 40, height: 40 }),
