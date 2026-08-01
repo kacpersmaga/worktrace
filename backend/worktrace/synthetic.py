@@ -49,6 +49,7 @@ class StepKind:
     copies: int = 0
     pastes: int = 0
     id_visible: float = 0.7
+    copy_last: bool = False  # e.g. copying the document number SAP shows after saving
 
 
 STEPS = {step.name: step for step in [
@@ -57,7 +58,7 @@ STEPS = {step.name: step for step in [
     StepKind("Search vendor in SAP", "SAP GUI", "Display Vendor (XK03)", 55, 7, 3, pastes=1),
     StepKind("Check purchase order", "SAP GUI", "Display Purchase Order (ME23N)", 80, 9, 2, pastes=1),
     StepKind("Check for duplicates", "Excel", "AP tracker.xlsx", 50, 6, 2, pastes=1, id_visible=0.5),
-    StepKind("Enter invoice in SAP", "SAP GUI", "Enter Incoming Invoice (MIRO)", 210, 22, 14, copies=1, pastes=4, id_visible=0.9),
+    StepKind("Enter invoice in SAP", "SAP GUI", "Enter Incoming Invoice (MIRO)", 210, 22, 14, copies=1, pastes=4, id_visible=0.9, copy_last=True),
     StepKind("Ask buyer about price", "Teams", "Chat", 120, 6, 8, pastes=1, id_visible=0.3),
     StepKind("Correct invoice amount", "SAP GUI", "Change Invoice (MIR4)", 95, 10, 5, id_visible=0.9),
     StepKind("Update AP tracker", "Excel", "AP tracker.xlsx", 75, 8, 4, pastes=3, id_visible=0.6),
@@ -82,6 +83,7 @@ class Clerk:
     speed: float
     switchy: bool = False
     skips_tracker: float = 0.1
+    starts_at: float = 8.0  # hour of day
 
 
 @dataclass
@@ -108,7 +110,7 @@ class Generator:
     def run(self) -> list[list[str]]:
         clerks = [
             Clerk(str(uuid.UUID(int=self.rng.getrandbits(128))), str(uuid.UUID(int=self.rng.getrandbits(128))),
-                  speed=self.rng.uniform(0.8, 1.2))
+                  speed=self.rng.uniform(0.8, 1.2), starts_at=self.rng.choice([7.5, 8.0, 8.0, 8.5, 9.0]))
             for _ in range(9)
         ]
         clerks[2].speed, clerks[2].switchy = 1.55, True
@@ -142,11 +144,14 @@ class Generator:
     def _simulate_clerk(self, clerk: Clerk) -> None:
         parked: list[Invoice] = []
         for day in self.working_days:
-            now = datetime.combine(day, datetime.min.time()) + timedelta(hours=8, minutes=self.rng.randint(0, 40))
+            midnight = datetime.combine(day, datetime.min.time())
+            now = midnight + timedelta(hours=clerk.starts_at, minutes=self.rng.randint(-10, 25))
+            hours = 7.0 if day.weekday() == 4 else 8.25  # shorter Fridays
+            day_end = now + timedelta(hours=hours + self.rng.uniform(-0.3, 0.4))
+            lunch_at = midnight + timedelta(hours=self.rng.uniform(11.75, 13.0))
             lunch_done = False
-            day_end = now.replace(hour=16, minute=self.rng.randint(15, 50))
             while now < day_end:
-                if not lunch_done and now.hour >= 12:
+                if not lunch_done and now >= lunch_at:
                     now = self._idle_step(clerk, now, minutes=self.rng.randint(25, 40))
                     lunch_done = True
                     continue
@@ -198,7 +203,8 @@ class Generator:
         head, tail = interactions[0], interactions[1:]
         self.rng.shuffle(tail)
         # copies happen while reading, pastes while typing: keep them in a believable order
-        tail.sort(key=lambda kind_name: {"copy": 0, "paste": 2}.get(kind_name, 1))
+        copy_rank = 3 if kind.copy_last else 0
+        tail.sort(key=lambda kind_name: {"copy": copy_rank, "paste": 2}.get(kind_name, 1))
         interactions = [head] + tail
         moments = sorted(self.rng.uniform(0, seconds) for _ in interactions[1:])
         times = [start] + [start + timedelta(seconds=moment) for moment in moments]

@@ -12,7 +12,7 @@ from worktrace.synthetic import Generator, write_export
 
 @pytest.fixture(scope="module")
 def ap_export(tmp_path_factory) -> Path:
-    generator = Generator(seed=3, days=5)
+    generator = Generator(seed=3, days=10)
     path = tmp_path_factory.mktemp("data") / "ap.csv.gz"
     write_export(generator.run(), path, generator.working_days)
     return path
@@ -34,9 +34,17 @@ def test_approval_wait_is_a_top_bottleneck(analysis):
     assert ("Request approval", "Post invoice in SAP") in handovers
 
 
-def test_missing_purchase_order_loop_is_found(analysis):
-    patterns = [loop.pattern for loop in analysis.rework]
-    assert ["Check purchase order", "Email vendor about PO", "Check purchase order"] in patterns
+def test_missing_purchase_order_loop_matches_the_planted_rate(analysis):
+    # The generator sends 18% of the 97% non-duplicate invoices back to the vendor: about 17.5% of cases.
+    loop = next(loop for loop in analysis.rework if loop.pattern == ["Check purchase order", "Email vendor about PO", "Check purchase order"])
+    assert 0.12 <= loop.share_of_cases <= 0.22
+
+
+def test_untagged_steps_are_attributed_so_most_invoices_look_complete(analysis):
+    assert analysis.quality.steps_with_imputed_id > 0
+    skipped_post = next((d.share for d in analysis.variants.deviations
+                         if d.kind == "skipped" and d.activity == "Post invoice in SAP"), 0)
+    assert skipped_post < 0.2
 
 
 def test_pdf_to_sap_copy_paste_is_found(analysis):
@@ -45,7 +53,7 @@ def test_pdf_to_sap_copy_paste_is_found(analysis):
 
 
 def test_slow_clerk_has_the_lowest_speed_index(analysis):
-    slowest = min(analysis.people, key=lambda person: person.speed_index)
+    slowest = min((person for person in analysis.people if person.speed_index), key=lambda person: person.speed_index)
     assert slowest.speed_index < 0.8
 
 
