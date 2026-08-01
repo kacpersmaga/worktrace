@@ -14,6 +14,8 @@ from worktrace.mining.bpmn import to_bpmn
 from worktrace.schemas import Analysis
 
 Status = Literal["running", "done", "failed"]
+# Bump when the analysis changes, so results cached by an older engine are recomputed.
+ENGINE_VERSION = 2
 
 
 @dataclass
@@ -62,13 +64,15 @@ class JobStore:
             job.status, job.error = "failed", str(error)
             return
         job.analysis, job.status = analysis, "done"
-        payload = {"id": job.id, "name": job.name, "created": job.created, "analysis": analysis.model_dump(mode="json")}
+        payload = {"engine": ENGINE_VERSION, "id": job.id, "name": job.name, "created": job.created, "analysis": analysis.model_dump(mode="json")}
         (self.folder / f"{job.id}.json").write_text(json.dumps(payload), encoding="utf-8")
 
     def _load_cached(self) -> None:
         for path in self.folder.glob("*.json"):
             try:
                 payload = json.loads(path.read_text(encoding="utf-8"))
+                if payload.get("engine") != ENGINE_VERSION:
+                    raise ValueError("cached by an older engine")
                 analysis = Analysis.model_validate(payload["analysis"])
             except (ValueError, KeyError):
                 path.unlink(missing_ok=True)  # written by an older version; it will be recomputed
