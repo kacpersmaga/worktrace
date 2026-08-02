@@ -16,7 +16,7 @@ export function AutomationTab({ analysis }: TabProps) {
   const color = appColors(analysis.apps);
   const candidates = analysis.automation;
   const topSaving = candidates.slice(0, 3).reduce((sum, candidate) => sum + candidate.saving_hours_per_week, 0);
-  const allSaving = candidates.reduce((sum, candidate) => sum + candidate.saving_hours_per_week, 0);
+  const trackedPerWeek = analysis.overview.tracked_hours / Math.max(analysis.overview.active_days / 5, 0.2);
   const maxSaving = Math.max(...candidates.map((candidate) => candidate.hours_per_week), 1e-9);
   const singleDay = analysis.overview.active_days < 5;
 
@@ -24,7 +24,12 @@ export function AutomationTab({ analysis }: TabProps) {
     <div className="grid gap-6">
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat label="Top 3 candidates save" value={`${hours(topSaving)}/wk`} detail={`≈ ${(topSaving / 40).toFixed(1)} full-time people`} hint="Hours per week the approach can realistically remove, using conservative automation rates per approach." />
-        <Stat label="All candidates" value={`${hours(allSaving)}/wk`} detail={`${candidates.length} steps ranked`} />
+        <Stat
+          label="Share of tracked work"
+          value={percent(topSaving / trackedPerWeek)}
+          detail={`of ${hours(trackedPerWeek)} a week`}
+          hint="The top three savings as a share of all tracked work per week."
+        />
         <Stat label="Values copied by hand" value={count(analysis.overview.cross_app_transfers)} detail={`${analysis.clipboard.length} distinct routes`} />
         <Stat label="App switches" value={`${analysis.switching.switches_per_hour.toFixed(0)}/h`} detail={`${percent(analysis.switching.ping_pong_share)} quick back-and-forth`} hint="Consecutive steps in different applications within a session. A ping-pong is A → B → A within two minutes." />
       </section>
@@ -50,7 +55,7 @@ export function AutomationTab({ analysis }: TabProps) {
                       <span className="size-2 rounded-full" style={{ background: color(candidate.app) }} />
                       {candidate.app}
                     </span>
-                    <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-accent">{candidate.approach}</span>
+                    <span className="rounded-full bg-accent-soft px-2 py-0.5 font-medium text-accent-ink">{candidate.approach}</span>
                   </span>
                 </span>
                 <span className="hidden md:block">

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Instrument_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geist = Geist({ subsets: ["latin", "latin-ext"], variable: "--font-geist" });
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" });
+const body = Instrument_Sans({ subsets: ["latin", "latin-ext"], variable: "--font-body" });
+const heading = Bricolage_Grotesque({ subsets: ["latin", "latin-ext"], variable: "--font-heading" });
+const code = JetBrains_Mono({ subsets: ["latin"], variable: "--font-code" });
 
 export const metadata: Metadata = {
   title: "WorkTrace",
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${body.variable} ${heading.variable} ${code.variable}`}>
       <body className="min-h-screen">{children}</body>
     </html>
   );

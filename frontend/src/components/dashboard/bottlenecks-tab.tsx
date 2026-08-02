@@ -20,7 +20,7 @@ export function BottlenecksTab({ analysis }: TabProps) {
   const sessions = analysis.quality.case_strategy === "work_session";
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1fr_20rem]">
+    <div className="grid gap-6">
       <Panel
         flush
         title="Ranked bottlenecks"
@@ -40,7 +40,7 @@ export function BottlenecksTab({ analysis }: TabProps) {
         </ol>
       </Panel>
 
-      <aside className="grid content-start gap-4">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Panel title="How the score works">
           <dl className="grid gap-3 text-[13px] leading-relaxed text-ink-2">
             <div>
@@ -80,7 +80,7 @@ export function BottlenecksTab({ analysis }: TabProps) {
             </ul>
           )}
         </Panel>
-      </aside>
+      </div>
     </div>
   );
 }
@@ -118,8 +118,10 @@ function BottleneckRow({ analysisId, bottleneck, index, open, onToggle }: RowPro
           </span>
         </span>
         <span className="hidden text-right sm:block">
-          <span className="tabular block text-[15px] font-semibold text-ink">{hours(bottleneck.hours_lost)}</span>
-          <span className="block text-[11px] text-ink-3">{handover ? "waiting" : "in step"}</span>
+          <span className="tabular block text-[15px] font-semibold text-ink">
+            {handover ? `${count(Math.round(bottleneck.hours_lost / 24))} days` : hours(bottleneck.hours_lost)}
+          </span>
+          <span className="block text-[11px] text-ink-3">{handover ? "waited in total" : "of work in step"}</span>
         </span>
         <span className="flex w-24 shrink-0 flex-col items-end gap-1.5">
           <SeverityBadge severity={bottleneck.severity} />

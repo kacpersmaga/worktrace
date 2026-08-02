@@ -17,6 +17,7 @@ export function QualityTab({ analysis }: TabProps) {
     ...Object.entries(quality.rows_dropped).map(([reason, value]) => ({ label: `Dropped: ${reason}`, value: -value })),
     { label: kyp ? "Process steps rebuilt" : "Events kept", value: quality.steps },
     { label: "Cases", value: quality.cases },
+    ...(quality.cases_cut_off ? [{ label: "Cut off by the export window", value: -quality.cases_cut_off }] : []),
   ];
 
   return (
@@ -36,6 +37,12 @@ export function QualityTab({ analysis }: TabProps) {
           ))}
         </dl>
         <p className="mt-4 text-[13px] leading-relaxed text-ink-2">{STRATEGY[quality.case_strategy]}</p>
+        {quality.cases_cut_off > 0 && (
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
+            Cases near the start or end of the export that do not begin or finish like complete cases were left out of
+            variant, map and duration statistics: they were already running, or still open, when the export was taken.
+          </p>
+        )}
       </Panel>
 
       {kyp && (

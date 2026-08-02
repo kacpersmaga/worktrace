@@ -67,10 +67,14 @@ export function PeopleTab({ analysis }: TabProps) {
                   <td className="px-3 py-3 text-right">{count(person.cases)}</td>
                   <td className="px-3 py-3 text-right">{minutes(person.median_case_minutes)}</td>
                   <td className="px-3 py-3">
-                    <span className="flex items-center gap-3">
-                      <SpeedBar value={person.speed_index} />
-                      <span className="w-10 text-ink">{person.speed_index.toFixed(2)}</span>
-                    </span>
+                    {person.speed_index === null ? (
+                      <span className="text-[12px] text-ink-3">Too little shared work</span>
+                    ) : (
+                      <span className="flex items-center gap-3">
+                        <SpeedBar value={person.speed_index} />
+                        <span className="w-10 text-ink">{person.speed_index.toFixed(2)}</span>
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-3 text-right">{person.switches_per_hour.toFixed(0)}</td>
                   <td className="px-3 py-3 text-right">{person.clipboard_per_hour.toFixed(0)}</td>

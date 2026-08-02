@@ -71,7 +71,7 @@ export function Dashboard({ analysis }: { analysis: Analysis }) {
                 {analysis.synthetic ? "Synthetic data" : "Real data"}
               </span>
             </div>
-            <h1 className="mt-1.5 text-[28px] font-semibold tracking-[-0.025em] text-ink">{analysis.name}</h1>
+            <h1 className="display mt-1.5 text-[30px] font-semibold tracking-[-0.03em] text-ink">{analysis.name}</h1>
           </div>
           <a
             href={api.bpmnUrl(analysis.id)}

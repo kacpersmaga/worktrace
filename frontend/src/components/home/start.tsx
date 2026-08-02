@@ -82,7 +82,7 @@ export function Start() {
             <ul className="mt-2 divide-y divide-line">
               {recent.map((job) => (
                 <li key={job.id}>
-                  <Link href={`/analysis/${job.id}`} className="flex items-center justify-between py-2 text-[14px] hover:text-accent">
+                  <Link href={`/analysis/${job.id}`} className="flex items-center justify-between py-2 text-[14px] hover:text-accent-ink">
                     {job.name}
                     <span className="text-[12px] text-ink-3">{new Date(job.created).toLocaleString("en-GB")}</span>
                   </Link>
@@ -118,19 +118,18 @@ function UploadZone({ busy, onFile }: { busy: boolean; onFile: (file: File) => v
         dragging ? "border-accent bg-accent-soft" : "border-line-strong bg-surface"
       }`}
     >
-      <span className="grid size-12 place-items-center rounded-xl bg-ink text-surface">
-        {busy ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <Upload className="size-5" aria-hidden />}
-      </span>
-      <h2 className="mt-5 text-[18px] font-semibold tracking-tight">Analyse your own export</h2>
-      <p className="mt-2 max-w-sm text-[13px] leading-relaxed text-ink-2">
-        A KYP.ai Activity Sequence Export, or any event log with case, activity and timestamp columns. CSV or .csv.gz, up to 400 MB.
+      <h2 className="display text-[22px] font-semibold tracking-[-0.02em]">Analyse your own export</h2>
+      <p className="mt-2 max-w-sm text-[14px] leading-relaxed text-ink-2">
+        Drag a KYP.ai Activity Sequence Export here, or any event log with case, activity and timestamp columns. CSV or
+        .csv.gz, up to 400&nbsp;MB.
       </p>
       <button
         type="button"
         onClick={() => input.current?.click()}
         disabled={busy}
-        className="mt-6 rounded-lg bg-button px-4 py-2 text-[13px] font-medium text-button-ink transition hover:opacity-90 disabled:opacity-60"
+        className="mt-6 inline-flex items-center gap-2 rounded-lg bg-button px-4 py-2.5 text-[14px] font-medium text-button-ink transition hover:opacity-90 disabled:opacity-60"
       >
+        {busy ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Upload className="size-4" aria-hidden />}
         {busy ? "Uploading…" : "Choose a file"}
       </button>
       <input

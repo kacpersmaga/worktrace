@@ -73,7 +73,7 @@ export function Timeline({ days, color, apps }: TimelineProps) {
             {ticks.map((tick) => (
               <span
                 key={tick}
-                className="tabular absolute -translate-x-1/2 text-[10px] text-ink-3"
+                className="tabular absolute -translate-x-1/2 text-[11px] text-ink-3"
                 style={{ left: `${((tick - from) / span) * 100}%` }}
               >
                 {String(tick).padStart(2, "0")}:00

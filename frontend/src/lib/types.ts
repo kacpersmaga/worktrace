@@ -18,6 +18,7 @@ export interface DataQuality {
   rows_per_step: number;
   case_strategy: "business_id" | "work_session" | "case_column";
   cases: number;
+  cases_cut_off: number;
   business_ids_found: number;
   business_ids_rejected: string[];
   steps_with_business_id: number;
@@ -64,6 +65,7 @@ export interface MapNode {
   label: string;
   app: string;
   count: number;
+  cases: number;
   median_seconds: number;
   total_hours: number;
   kind: "start" | "end" | "activity";
@@ -73,6 +75,7 @@ export interface MapEdge {
   source: string;
   target: string;
   count: number;
+  cases: number;
   dependency: number;
   median_wait_seconds: number;
   p90_wait_seconds: number;
@@ -81,9 +84,8 @@ export interface MapEdge {
 export interface ProcessMap {
   nodes: MapNode[];
   edges: MapEdge[];
-  activities_shown: number;
+  cases: number;
   activities_total: number;
-  transitions_covered: number;
 }
 
 export interface Variant {
@@ -187,7 +189,7 @@ export interface Person {
   active_hours: number;
   idle_share: number;
   median_case_minutes: number;
-  speed_index: number;
+  speed_index: number | null;
   rework_rate: number;
   switches_per_hour: number;
   clipboard_per_hour: number;

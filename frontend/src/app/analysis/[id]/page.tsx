@@ -19,7 +19,11 @@ export default function AnalysisPage({ params }: { params: Promise<{ id: string 
     let cancelled = false;
     async function poll() {
       try {
-        const job = await api.status(id);
+        // Demo links are shareable: if the service has not computed this demo yet, start it.
+        const job = await api.status(id).catch((reason) => {
+          if (id.startsWith("demo-")) return api.openDemo(id.slice("demo-".length));
+          throw reason;
+        });
         if (cancelled) return;
         if (job.status === "running") {
           setTimeout(poll, POLL_MS);

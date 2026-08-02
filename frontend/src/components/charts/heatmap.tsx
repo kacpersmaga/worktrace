@@ -27,7 +27,7 @@ export function Heatmap({ cells }: { cells: HeatCell[] }) {
         <div className="grid min-w-[480px] gap-[3px]" style={{ gridTemplateColumns: `2.5rem repeat(${hourRange.length}, 1fr)` }}>
           <span />
           {hourRange.map((hour) => (
-            <span key={hour} className="tabular pb-1 text-center text-[10px] text-ink-3">
+            <span key={hour} className="tabular pb-1 text-center text-[11px] text-ink-3">
               {hour % 2 === 0 ? `${hour}` : ""}
             </span>
           ))}

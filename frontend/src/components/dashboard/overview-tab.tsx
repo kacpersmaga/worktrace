@@ -25,26 +25,30 @@ export function OverviewTab({ analysis, onNavigate }: TabProps) {
 
   return (
     <div className="grid gap-6">
-      <section aria-label="Key findings" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {analysis.findings.map((finding) => {
-          const { Icon, color: tone } = TONES[finding.tone];
-          return (
-            <button
-              key={finding.title}
-              type="button"
-              onClick={() => onNavigate(finding.tab)}
-              className="panel group flex gap-3 p-4 text-left transition hover:border-line-strong"
-            >
-              <Icon className="mt-0.5 size-4 shrink-0" style={{ color: tone }} aria-hidden />
-              <span className="min-w-0">
-                <span className="block text-[14px] font-semibold leading-snug tracking-tight text-ink">{finding.title}</span>
-                <span className="mt-1 block text-[13px] leading-relaxed text-ink-2">{finding.detail}</span>
-              </span>
-              <ArrowUpRight className="ml-auto size-4 shrink-0 text-ink-3 opacity-0 transition group-hover:opacity-100" aria-hidden />
-            </button>
-          );
-        })}
-      </section>
+      <Panel flush title="What stands out" subtitle="Written from the results below. Open one to see the evidence.">
+        <ol className="divide-y divide-line border-t border-line">
+          {analysis.findings.map((finding) => {
+            const { Icon, color: tone } = TONES[finding.tone];
+            return (
+              <li key={finding.title}>
+                <button
+                  type="button"
+                  onClick={() => onNavigate(finding.tab)}
+                  className="group grid w-full grid-cols-[1.25rem_1fr_auto] items-start gap-3 px-5 py-3.5 text-left transition hover:bg-surface-2 md:grid-cols-[1.25rem_minmax(0,26rem)_1fr_auto]"
+                >
+                  <Icon className="mt-0.5 size-4" style={{ color: tone }} aria-hidden />
+                  <span className="text-[14px] font-semibold leading-snug text-ink">{finding.title}</span>
+                  <span className="col-start-2 text-[13px] leading-relaxed text-ink-2 md:col-start-3">{finding.detail}</span>
+                  <ArrowUpRight
+                    className="col-start-3 row-start-1 size-4 text-ink-3 transition group-hover:translate-x-0.5 group-hover:text-ink md:col-start-4"
+                    aria-hidden
+                  />
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </Panel>
 
       <section aria-label="Key numbers" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Stat
