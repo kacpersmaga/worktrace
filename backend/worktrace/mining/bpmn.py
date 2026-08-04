@@ -67,16 +67,21 @@ class _BpmnBuilder:
             self.definitions, f"{{{BPMN_NS}}}process", {"id": "Process_1", "name": name, "isExecutable": "false"}
         )
         self.flows = 0
+        self.nodes: dict[str, ET.Element] = {}
 
     def element(self, tag: str, element_id: str, name: str) -> str:
         attributes = {"id": element_id} | ({"name": name} if name else {})
-        ET.SubElement(self.process, f"{{{BPMN_NS}}}{tag}", attributes)
+        self.nodes[element_id] = ET.SubElement(self.process, f"{{{BPMN_NS}}}{tag}", attributes)
         return element_id
 
     def flow(self, source: str, target: str, label: str = "") -> None:
         self.flows += 1
-        attributes = {"id": f"Flow_{self.flows}", "sourceRef": source, "targetRef": target}
+        flow_id = f"Flow_{self.flows}"
+        attributes = {"id": flow_id, "sourceRef": source, "targetRef": target}
         ET.SubElement(self.process, f"{{{BPMN_NS}}}sequenceFlow", attributes | ({"name": label} if label else {}))
+        # Nodes list their flows too; layout tools walk the graph through these references.
+        ET.SubElement(self.nodes[source], f"{{{BPMN_NS}}}outgoing").text = flow_id
+        ET.SubElement(self.nodes[target], f"{{{BPMN_NS}}}incoming").text = flow_id
 
     def xml(self) -> str:
         ET.indent(self.definitions)
