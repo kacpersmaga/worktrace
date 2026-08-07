@@ -26,7 +26,7 @@ export function BpmnView({ analysisId }: { analysisId: string }) {
         const instance = new NavigatedViewer({ container: container.current });
         viewer = instance;
         await instance.importXML(laidOut);
-        (instance.get("canvas") as { zoom: (mode: string) => void }).zoom("fit-viewport");
+        (instance.get("canvas") as { zoom: (mode: string, center: string) => void }).zoom("fit-viewport", "auto");
       } catch (reason) {
         if (!cancelled) setError(reason instanceof Error ? reason.message : "Could not render the BPMN model.");
       }

@@ -54,7 +54,7 @@ export function OverviewTab({ analysis, onNavigate }: TabProps) {
         <Stat
           label="Tracked work"
           value={hours(overview.tracked_hours)}
-          detail={`${percent(overview.idle_hours / overview.tracked_hours)} of it idle · ${overview.active_days} days`}
+          detail={`${percent(overview.idle_hours / overview.tracked_hours)} of it idle · ${overview.active_days} ${overview.active_days === 1 ? "day" : "days"}`}
           hint="Time inside recorded process steps. Idle is time inside a step with no mouse or keyboard input."
         />
         <Stat
@@ -81,7 +81,7 @@ export function OverviewTab({ analysis, onNavigate }: TabProps) {
         />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
+      <div className="grid items-start gap-6 xl:grid-cols-[1fr_1.2fr]">
         <Panel title="Where the time goes" subtitle="Tracked hours per application; the lighter part of each bar is idle time.">
           <BarList
             rows={analysis.apps.map((app) => ({
