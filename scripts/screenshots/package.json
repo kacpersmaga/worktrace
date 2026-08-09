@@ -1,0 +1,12 @@
+{
+  "name": "worktrace-screenshots",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "screenshots": "node screenshots.mjs",
+    "slides": "node readme-slides.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}
