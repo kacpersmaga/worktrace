@@ -13,7 +13,7 @@ import type { Bottleneck } from "@/lib/types";
 import type { TabProps } from "./overview-tab";
 
 const SCORE_HINT =
-  "0–100. Each signal is ranked against every other step or hand-over, and the score is a weighted average of those ranks. Severity also needs real hours behind it: a step under 3% of tracked time cannot be critical.";
+  "0–100. Each signal is ranked against every other step or hand-over, and the score is a weighted average of those ranks. Severity also needs real hours behind it: a step under 8% of tracked time cannot be critical, and a hand-over must be on the path of 15% of cases.";
 
 export function BottlenecksTab({ analysis }: TabProps) {
   const [open, setOpen] = useState(0);
@@ -135,7 +135,7 @@ function BottleneckRow({ analysisId, bottleneck, index, open, onToggle }: RowPro
       {open && (
         <div className="grid gap-5 bg-surface-2/40 px-5 pb-5 pt-1 sm:pl-14 lg:grid-cols-2">
           <div>
-            <h3 className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-3">Signals, ranked against all candidates</h3>
+            <h3 className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-3">Signals, ranked against similar candidates</h3>
             <SignalBars signals={bottleneck.signals} />
           </div>
           <div className="grid content-start gap-3">
