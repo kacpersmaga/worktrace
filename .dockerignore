@@ -1,0 +1,7 @@
+**/.venv
+**/__pycache__
+**/.worktrace
+frontend
+scripts
+docs
+.git
