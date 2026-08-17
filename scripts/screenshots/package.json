@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "screenshots": "node screenshots.mjs",
-    "slides": "node readme-slides.mjs"
+    "slides": "node readme-slides.mjs",
+    "demo": "node record-demo.mjs"
   },
   "devDependencies": {
     "playwright": "^1.55.0"
