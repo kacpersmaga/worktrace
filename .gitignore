@@ -25,3 +25,6 @@ Thumbs.db
 # Raw exports stay local; only the curated demo files are committed
 data/*
 !data/demo/
+
+# Screenshot captures; the README uses docs/readme
+docs/images/
