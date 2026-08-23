@@ -11,9 +11,10 @@ def collapse_repeats(steps: pd.DataFrame) -> pd.DataFrame:
     """
     same_as_previous = (steps["case_id"] == steps["case_id"].shift()) & (steps["activity"] == steps["activity"].shift())
     block = (~same_as_previous).cumsum()
-    sums = ["active_s", "idle_s", "clicks", "keys", "copies", "pastes", "cuts"]
+    sums = ["active_s", "idle_s", "clicks", "keys", "copies", "pastes", "cuts",
+            "typing_s", "clicking_s", "clipboard_s", "looking_s", "no_input_s"]
     merged = steps.groupby(block, sort=False).agg(
-        {"case_id": "first", "activity": "first", "user": "first", "app": "first",
+        {"case_id": "first", "activity": "first", "user": "first", "app": "first", "view": "first",
          "start": "first", "end": "max", **{column: "sum" for column in sums}}
     )
     return merged.reset_index(drop=True)

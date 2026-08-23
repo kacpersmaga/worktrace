@@ -59,7 +59,8 @@ def flow_frame(cases: dict[str, list[tuple[str, int, int]]]) -> pd.DataFrame:
             rows.append({
                 "case_id": case_id, "activity": activity, "user": "u1", "app": activity.split()[0],
                 "start": start, "end": start + timedelta(seconds=seconds), "active_s": float(seconds),
-                "idle_s": 0.0, "clicks": 1, "keys": 0, "copies": 0, "pastes": 0, "cuts": 0,
+                "idle_s": 0.0, "clicks": 1, "keys": 0, "copies": 0, "pastes": 0, "cuts": 0, "view": "",
+                "typing_s": 0.0, "clicking_s": float(seconds), "clipboard_s": 0.0, "looking_s": 0.0, "no_input_s": 0.0,
             })
     return pd.DataFrame(rows)
 

@@ -51,6 +51,7 @@ def read_event_log(export: RawExport) -> tuple[pd.DataFrame, int, dict[str, int]
     no_identity = steps["case_id"].eq("") | steps["activity"].eq("")
     steps = steps.loc[~no_time & ~no_identity].sort_values(["case_id", "start"]).reset_index(drop=True)
     steps["app"] = steps["app"].replace("", "Unknown")
+    steps["view"] = ""
     steps["user"] = steps["user"].replace("", "unknown")
 
     # Without end times an event lasts until the next event of the same case starts.
@@ -61,6 +62,8 @@ def read_event_log(export: RawExport) -> tuple[pd.DataFrame, int, dict[str, int]
     steps["rows"] = 1
     for counter in ("clicks", "keys", "copies", "pastes", "cuts"):
         steps[counter] = 0
+    for column in ("typing_s", "clicking_s", "clipboard_s", "looking_s", "no_input_s"):
+        steps[column] = 0.0  # a plain event log says nothing about what happened inside a step
 
     dropped = {"no timestamp": int(no_time.sum()), "no case or activity": int((no_identity & ~no_time).sum())}
     dropped["footer lines"] = export.footer_rows
