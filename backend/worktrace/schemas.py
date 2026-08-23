@@ -124,6 +124,36 @@ class VariantAnalysis(BaseModel):
     deviations: list[Deviation]
 
 
+class Share(BaseModel):
+    label: str
+    share: float
+    detail: str = ""
+
+
+class Cause(BaseModel):
+    """One reason a step costs time: what was measured, what to do, and how many hours it concerns."""
+
+    kind: str
+    title: str
+    evidence: str
+    action: str
+    hours: float = Field(description="Hours per day or week (the analysis period) the cause concerns")
+    impact: str
+    examples: list[str] = []
+
+
+class Diagnosis(BaseModel):
+    summary: str
+    per_run: dict[str, float]
+    time_split: list[Share] = []
+    screens: list[Share]
+    before: list[Share]
+    after: list[Share]
+    data_in: list[Share]
+    data_out: list[Share]
+    causes: list[Cause]
+
+
 class Bottleneck(BaseModel):
     kind: Literal["step", "handover"]
     activity: str
@@ -137,6 +167,7 @@ class Bottleneck(BaseModel):
     cases: int
     signals: list[Signal]
     evidence: list[str]
+    diagnosis: Diagnosis | None = None
 
 
 class ReworkLoop(BaseModel):
@@ -181,6 +212,8 @@ class AutomationCandidate(BaseModel):
     executions_per_week: float
     signals: list[Signal]
     rationale: list[str]
+    diagnosis: Diagnosis | None = None
+    blueprint: list[str] = []
 
 
 class Routine(BaseModel):
@@ -240,6 +273,7 @@ class Finding(BaseModel):
 class Analysis(BaseModel):
     id: str
     name: str
+    period: str = "week"
     synthetic: bool = False
     quality: DataQuality
     overview: Overview

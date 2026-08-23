@@ -10,11 +10,12 @@ from worktrace.mining.anomalies import find_anomalies
 from worktrace.mining.automation import automation_candidates
 from worktrace.mining.bottlenecks import detect_bottlenecks
 from worktrace.mining.clipboard import clipboard_flows, match_transfers
-from worktrace.mining.people import analyse_people, day_timelines
+from worktrace.mining.diagnosis import DiagnosisContext, automation_blueprint, diagnose_handover, diagnose_step
+from worktrace.mining.people import aliases, analyse_people, day_timelines
 from worktrace.mining.process_map import build_process_map
 from worktrace.mining.rework import find_rework_loops
 from worktrace.mining.routines import find_routines
-from worktrace.mining.switching import analyse_switching
+from worktrace.mining.switching import analyse_switching, mark_switches
 from worktrace.mining.transitions import collapse_repeats
 from worktrace.mining.variants import analyse_variants
 from worktrace.mining.window import complete_cases
@@ -64,8 +65,31 @@ def analyse(log: EventLog, analysis_id: str, name: str, synthetic: bool = False)
         timelines=day_timelines(steps),
         anomalies=find_anomalies(complete, steps),
     )
+    _diagnose(analysis, DiagnosisContext(
+        flow=flow, steps=mark_switches(steps), transfers=transfers, rework=analysis.rework,
+        aliases=aliases(steps), cases_are_sessions=sessions, **_period(steps),
+    ))
+    analysis.period = _period(steps)["period"]
     analysis.findings = headline_findings(analysis)
     return analysis, flow
+
+
+def _diagnose(analysis: Analysis, context: DiagnosisContext) -> None:
+    """Attach the why and the what-to-do to every bottleneck and automation candidate."""
+    for bottleneck in analysis.bottlenecks:
+        if bottleneck.kind == "handover":
+            bottleneck.diagnosis = diagnose_handover(context, bottleneck.activity, bottleneck.next_activity)
+        else:
+            bottleneck.diagnosis = diagnose_step(context, bottleneck.activity)
+    for candidate in analysis.automation:
+        candidate.diagnosis = diagnose_step(context, candidate.activity)
+        candidate.blueprint = automation_blueprint(candidate.diagnosis, candidate.activity, candidate.app)
+
+
+def _period(steps: pd.DataFrame) -> dict:
+    """Short exports are described per day; a week or more per week."""
+    days = _active_days(steps)
+    return {"periods": days, "period": "day"} if days < 5 else {"periods": days / 5, "period": "week"}
 
 
 def _active_days(steps: pd.DataFrame) -> int:
