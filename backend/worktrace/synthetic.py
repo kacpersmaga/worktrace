@@ -1,6 +1,6 @@
 """A synthetic KYP.ai export of an accounts-payable team, for demos and tests.
 
-The real hackathon dataset cannot be redistributed, and the one public sample
+The full AI Krak Hack dataset cannot be redistributed, and the one public sample
 is a single day of a software team. This generator simulates three weeks of
 nine AP clerks processing supplier invoices and writes the result in the exact
 Activity Sequence Export format, including its quirks: one row per

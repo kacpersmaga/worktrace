@@ -1,8 +1,8 @@
 """Bottleneck detection that weighs evidence instead of applying one threshold.
 
-The hackathon version flagged the transition with the longest *average* wait,
-so a single overnight gap seen once came out as "critical". Here two kinds of
-bottleneck are scored from several independent signals:
+Ranking transitions by average wait alone would make a single overnight gap,
+seen once, look critical. Instead two kinds of bottleneck are scored from
+several independent signals:
 
 Steps, where the work itself is slow:
   - time tied up       total hours spent in the step (impact, not just slowness)
