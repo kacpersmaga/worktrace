@@ -15,7 +15,7 @@ from worktrace.schemas import Analysis
 
 Status = Literal["running", "done", "failed"]
 # Bump when the analysis changes, so results cached by an older engine are recomputed.
-ENGINE_VERSION = 2
+ENGINE_VERSION = 3
 
 
 @dataclass

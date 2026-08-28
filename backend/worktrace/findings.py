@@ -10,30 +10,25 @@ def headline_findings(analysis: Analysis) -> list[Finding]:
 
     if analysis.bottlenecks:
         top = analysis.bottlenecks[0]
-        if top.kind == "handover":
-            findings.append(Finding(
-                tone="warning",
-                title=f"Cases stall between “{top.activity}” and “{top.next_activity}”",
-                detail=f"A typical case waits {human_duration(top.median_seconds)} there; "
-                       f"{top.cases:,} cases waited there, {top.hours_lost / 24:,.0f} days in total.",
-                tab="bottlenecks",
-            ))
-        else:
-            share = top.hours_lost / overview.tracked_hours if overview.tracked_hours else 0
-            findings.append(Finding(
-                tone="warning",
-                title=f"“{top.activity}” is the main bottleneck",
-                detail=f"{top.hours_lost:.1f} h ({share:.0%} of tracked time). {top.evidence[-1]}",
-                tab="bottlenecks",
-            ))
+        cause = top.diagnosis.causes[0] if top.diagnosis and top.diagnosis.causes else None
+        where = f"between “{top.activity}” and “{top.next_activity}”" if top.kind == "handover" else f"in “{top.activity}”"
+        findings.append(Finding(
+            tone="warning",
+            title=f"{cause.title} {where}" if cause else f"“{top.activity}” is the main bottleneck",
+            detail=f"{cause.evidence} What to do: {cause.action}" if cause else top.evidence[0],
+            tab="bottlenecks",
+        ))
 
     if analysis.automation:
         saving = sum(candidate.saving_hours_per_week for candidate in analysis.automation[:3])
         best = analysis.automation[0]
+        hands_on = [cause for cause in (best.diagnosis.causes if best.diagnosis else [])
+                    if cause.kind in {"rekeying", "copy_out", "typing", "lookups"}]
+        how = f"{hands_on[0].evidence} {hands_on[0].action}" if hands_on else " ".join(best.blueprint[:3])
         findings.append(Finding(
             tone="opportunity",
-            title=f"About {saving:.0f} h a week could be automated",
-            detail=f"Top three candidates; the best is “{best.activity}” ({best.approach.lower()}).",
+            title=f"About {saving:.0f} h a week could be automated, starting with “{best.activity}”",
+            detail=how,
             tab="automation",
         ))
 
