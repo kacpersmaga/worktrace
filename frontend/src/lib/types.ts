@@ -114,6 +114,34 @@ export interface VariantAnalysis {
   deviations: Deviation[];
 }
 
+export interface Share {
+  label: string;
+  share: number;
+  detail: string;
+}
+
+export interface Cause {
+  kind: string;
+  title: string;
+  evidence: string;
+  action: string;
+  hours: number;
+  impact: string;
+  examples: string[];
+}
+
+export interface Diagnosis {
+  summary: string;
+  per_run: Record<string, number>;
+  time_split: Share[];
+  screens: Share[];
+  before: Share[];
+  after: Share[];
+  data_in: Share[];
+  data_out: Share[];
+  causes: Cause[];
+}
+
 export interface Bottleneck {
   kind: "step" | "handover";
   activity: string;
@@ -127,6 +155,7 @@ export interface Bottleneck {
   cases: number;
   signals: Signal[];
   evidence: string[];
+  diagnosis: Diagnosis | null;
 }
 
 export interface ReworkLoop {
@@ -171,6 +200,8 @@ export interface AutomationCandidate {
   executions_per_week: number;
   signals: Signal[];
   rationale: string[];
+  diagnosis: Diagnosis | null;
+  blueprint: string[];
 }
 
 export interface Routine {
@@ -230,6 +261,7 @@ export interface Finding {
 export interface Analysis {
   id: string;
   name: string;
+  period: "day" | "week";
   synthetic: boolean;
   quality: DataQuality;
   overview: Overview;

@@ -52,7 +52,7 @@ export default function Home() {
       </section>
 
       <footer className="mt-20 border-t border-line pt-6 text-[12px] text-ink-3">
-        Built by team VibeCoders at AI Krak Hack 2026, then rebuilt from the ground up. Everything runs locally.
+        Built by team VibeCoders at AI Krak Hack 2026. Everything runs locally.
       </footer>
     </main>
   );

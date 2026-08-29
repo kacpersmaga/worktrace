@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { ArrowRight, ChevronDown, Hourglass, Timer } from "lucide-react";
 import { useState } from "react";
 import { ExplainButton } from "@/components/ui/explain-button";
+import { DiagnosisView, TopCause } from "./diagnosis-view";
 import { Hint } from "@/components/ui/hint";
 import { Panel } from "@/components/ui/panel";
 import { SeverityBadge } from "@/components/ui/severity-badge";
@@ -24,7 +25,7 @@ export function BottlenecksTab({ analysis }: TabProps) {
       <Panel
         flush
         title="Ranked bottlenecks"
-        subtitle="Slow steps and slow hand-overs between steps, ranked by the evidence behind them. Open a row to see why."
+        subtitle="Slow steps and slow hand-overs, ranked by the evidence behind them. Open a row to see what happens there, why it takes time and what to do."
       >
         <ol className="divide-y divide-line border-t border-line">
           {analysis.bottlenecks.map((bottleneck, index) => (
@@ -114,7 +115,10 @@ function BottleneckRow({ analysisId, bottleneck, index, open, onToggle }: RowPro
             <span>
               {handover ? "typical wait" : "median"} {duration(bottleneck.median_seconds)}
             </span>
-            <span>{count(bottleneck.occurrences)}× in {count(bottleneck.cases)} cases</span>
+            <span>
+              {count(bottleneck.occurrences)}× in {count(bottleneck.cases)} {bottleneck.cases === 1 ? "case" : "cases"}
+            </span>
+            <TopCause diagnosis={bottleneck.diagnosis} />
           </span>
         </span>
         <span className="hidden text-right sm:block">
@@ -133,24 +137,26 @@ function BottleneckRow({ analysisId, bottleneck, index, open, onToggle }: RowPro
         <ChevronDown className={clsx("size-4 shrink-0 text-ink-3 transition", open && "rotate-180")} aria-hidden />
       </button>
       {open && (
-        <div className="grid gap-5 bg-surface-2/40 px-5 pb-5 pt-1 sm:pl-14 lg:grid-cols-2">
-          <div>
-            <h3 className="mb-3 text-[12px] font-medium uppercase tracking-wide text-ink-3">Signals, ranked against similar candidates</h3>
-            <SignalBars signals={bottleneck.signals} />
-          </div>
-          <div className="grid content-start gap-3">
-            <h3 className="text-[12px] font-medium uppercase tracking-wide text-ink-3">Evidence</h3>
-            <ul className="grid gap-1.5 text-[13px] leading-relaxed text-ink-2">
-              {bottleneck.evidence.map((line) => (
-                <li key={line} className="flex gap-2">
-                  <span className="mt-2 size-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
-                  {line}
-                </li>
-              ))}
-            </ul>
-            <div>
-              <ExplainButton analysisId={analysisId} kind="bottleneck" index={index} />
+        <div className="grid gap-5 bg-surface-2/40 px-5 pb-6 pt-2 sm:pl-14">
+          {bottleneck.diagnosis && <DiagnosisView diagnosis={bottleneck.diagnosis} />}
+          <details className="group rounded-xl border border-line bg-surface px-4 py-3">
+            <summary className="cursor-pointer text-[12px] font-medium text-ink-2 marker:text-ink-3">
+              How the score of {bottleneck.score.toFixed(0)} was reached
+            </summary>
+            <div className="mt-4 grid gap-5 lg:grid-cols-2">
+              <SignalBars signals={bottleneck.signals} />
+              <ul className="grid content-start gap-1.5 text-[13px] leading-relaxed text-ink-2">
+                {bottleneck.evidence.map((line) => (
+                  <li key={line} className="flex gap-2">
+                    <span className="mt-2 size-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
+                    {line}
+                  </li>
+                ))}
+              </ul>
             </div>
+          </details>
+          <div>
+            <ExplainButton analysisId={analysisId} kind="bottleneck" index={index} />
           </div>
         </div>
       )}

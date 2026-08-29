@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { ExplainButton } from "@/components/ui/explain-button";
+import { Blueprint, DiagnosisView } from "./diagnosis-view";
 import { Panel } from "@/components/ui/panel";
 import { SignalBars } from "@/components/ui/signal-bars";
 import { Stat } from "@/components/ui/stat";
@@ -73,10 +74,10 @@ export function AutomationTab({ analysis }: TabProps) {
                 </span>
               </button>
               {open === index && (
-                <div className="grid gap-5 bg-surface-2/40 px-5 pb-5 pt-1 sm:pl-14 lg:grid-cols-2">
-                  <SignalBars signals={candidate.signals} />
-                  <div className="grid content-start gap-3">
-                    <ul className="grid gap-1.5 text-[13px] leading-relaxed text-ink-2">
+                <div className="grid gap-5 bg-surface-2/40 px-5 pb-6 pt-2 sm:pl-14">
+                  <div className="grid gap-5 rounded-xl border border-line bg-surface p-4 lg:grid-cols-2">
+                    <Blueprint steps={candidate.blueprint} />
+                    <ul className="grid content-start gap-1.5 text-[13px] leading-relaxed text-ink-2">
                       {candidate.rationale.map((line) => (
                         <li key={line} className="flex gap-2">
                           <span className="mt-2 size-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
@@ -84,9 +85,16 @@ export function AutomationTab({ analysis }: TabProps) {
                         </li>
                       ))}
                     </ul>
-                    <div>
-                      <ExplainButton analysisId={analysis.id} kind="automation" index={index} />
+                  </div>
+                  {candidate.diagnosis && <DiagnosisView diagnosis={candidate.diagnosis} />}
+                  <details className="rounded-xl border border-line bg-surface px-4 py-3">
+                    <summary className="cursor-pointer text-[12px] font-medium text-ink-2">How the score of {candidate.score.toFixed(0)} was reached</summary>
+                    <div className="mt-4">
+                      <SignalBars signals={candidate.signals} />
                     </div>
+                  </details>
+                  <div>
+                    <ExplainButton analysisId={analysis.id} kind="automation" index={index} />
                   </div>
                 </div>
               )}
