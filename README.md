@@ -1,8 +1,10 @@
 <p align="center"><img src="docs/readme/hero.jpg" width="100%" alt="WorkTrace. See how work really flows. First place at AI Krak Hack 2026."></p>
 
-<p align="center"><img src="docs/readme/demo.gif" width="100%" alt="Opening the accounts payable demo: overview, process map with the detail sliders, a bottleneck opened to its evidence, automation candidates and the people timeline"></p>
+<p align="center"><img src="docs/readme/demo.gif" width="100%" alt="Opening the accounts payable demo: overview, process map with the detail sliders, a bottleneck opened to its causes and actions, automation candidates and the people timeline"></p>
 
-<p align="center"><img src="docs/readme/fixed.jpg" width="100%" alt="The hackathon numbers were wrong. Now they are not."></p>
+<p align="center"><img src="docs/readme/diagnosis.jpg" width="100%" alt="Not just what is slow. Why, and what to do."></p>
+
+<p align="center"><img src="docs/readme/raw.jpg" width="100%" alt="Built for raw task-mining data"></p>
 
 <p align="center"><img src="docs/readme/map.jpg" width="100%" alt="The process as it runs, not as the wiki says"></p>
 
@@ -29,16 +31,17 @@
 
 ## About
 
-WorkTrace started as our entry to the **Process-to-Automation Copilot** challenge at **AI Krak Hack 2026** (Kraków, 27–28 March 2026), where team VibeCoders took first place. The brief: take task-mining data from KYP.ai (every click, keystroke and copy-paste of a team at work), reconstruct how the process really runs, find the bottlenecks and say what to automate.
+WorkTrace is team VibeCoders' winning entry to the **Process-to-Automation Copilot** challenge at **AI Krak Hack 2026** (Kraków, 27–28 March 2026). The brief: take raw task-mining data from KYP.ai (every click, keystroke and copy-paste of a team at work), reconstruct how the process really runs, find the bottlenecks and say what to automate.
 
-After the event I rebuilt it. The prototype read the export the naive way and its numbers were wrong (see the table above). This version reads the export for what it is, uses real process-mining algorithms instead of hand-tuned `if`s, and every number on screen can show where it came from.
+The point is the last part. A dashboard that says “Excel is a bottleneck” helps nobody. WorkTrace opens every bottleneck into what happens in that step: how its time splits into typing, clicking, copy-paste and time with nobody working, which screens it happens in, where the data comes from and goes, and which people and runs stand out. From that it says why the step is slow and what to do about it, with the hours each fix concerns and the runs to look at.
 
 ## What it does
 
 - **Reads messy exports.** KYP.ai Activity Sequence Exports (plain or `.gz`, any common encoding) and generic event logs with case, activity and timestamp columns. Footers, broken rows and repeated counters are handled; the Data quality tab says what was fixed.
 - **Finds the cases.** Business IDs read by OCR are cleaned by shape voting, and untagged steps are attributed to cases with a Markov model of the process. Without usable IDs, work is split into sessions.
 - **Maps the process.** Heuristics Miner dependency graph with Disco-style sliders for activities and paths, waiting times on every hand-over, and a BPMN 2.0 export.
-- **Ranks bottlenecks and automation candidates** from several measured signals, each with its percentile and the reasons in plain language. Optional Gemini explanations, grounded in the measured numbers only.
+- **Explains every bottleneck.** The time inside a step split by what the person was doing, the slow runs and what they are made of, re-keyed data, look-ups in other apps, people who take twice as long, approval queues and overnight waits: each as a cause with its evidence and a concrete action.
+- **Says what to automate and how.** Candidates scored on time, volume, manual input, copy-paste and predictability, each with the steps the automation would take over. Optional Gemini explanations, grounded in the measured numbers only.
 - **Compares people fairly** (speed on the same activities, not raw totals), finds rework loops, routines, copy-paste flows between applications and unusual cases.
 
 <details>
@@ -56,7 +59,7 @@ cd frontend && npm install && npm run dev              # dashboard on :3000
 Open http://localhost:3000 and pick a demo dataset, or upload your own export. Or run both in containers with `docker compose up`.
 
 ```bash
-cd backend && uv run pytest                             # 28 tests, including ground-truth checks on synthetic data
+cd backend && uv run pytest                             # 31 tests, including ground-truth checks on synthetic data
 uv run python -m worktrace.synthetic --days 15          # regenerate the synthetic AP team
 GEMINI_API_KEY=... uv run uvicorn worktrace.api.app:app  # turn on Gemini explanations
 ```
@@ -70,10 +73,10 @@ GEMINI_API_KEY=... uv run uvicorn worktrace.api.app:app  # turn on Gemini explan
 
 | Dataset | What it is |
 | --- | --- |
-| `data/demo/kyp_pilot_day.csv.gz` | A real, anonymised KYP.ai Activity Sequence Export from the hackathon: eight people of a software team on 1 March 2026. Screen text, OCR, URLs and window titles are removed. |
+| `data/demo/kyp_pilot_day.csv.gz` | A real, anonymised KYP.ai Activity Sequence Export from the hackathon: eight people of a software team on 1 March 2026. Screen text, OCR and URLs are removed; window titles are kept with hosts and addresses masked. |
 | `data/demo/accounts_payable.csv.gz` | Synthetic: three weeks of nine accounts-payable clerks, written by [`synthetic.py`](backend/worktrace/synthetic.py) in the exact export format with its quirks (repeated counters, NOT_FOUND and junk IDs, the footer). Built-in behaviour (approval waits, an 18% missing-PO loop, a slower clerk) is checked by the tests. |
 
-The full hackathon dataset (1.6 GB) belongs to the organisers and is not included.
+The full challenge dataset (1.6 GB) belongs to the organisers and is not included.
 
 </details>
 
@@ -82,6 +85,6 @@ The full hackathon dataset (1.6 GB) belongs to the organisers and is not include
 
 <br>
 
-The hackathon prototype was built by team VibeCoders: Mateusz Caputa, Marcin Pałys and Kacper Smaga. The analysis engine, the dashboard and this repository are a rebuild by Kacper Smaga.
+Built by team VibeCoders at AI Krak Hack 2026: Mateusz Caputa, Marcin Pałys and Kacper Smaga.
 
 </details>

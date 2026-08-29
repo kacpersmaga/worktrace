@@ -54,29 +54,33 @@ const slides = {
     <p>Process and task mining for the clicks, keystrokes and copy-pastes behind a business process.</p>
     <div class="award">${trophy} First place at AI Krak Hack 2026, Process-to-Automation Copilot challenge</div></div>
     <img class="screen tilt" src="${await image('ap-overview.jpg')}"></div>`,
-  fixed: async () => `<div class="slide"><div class="head"><h2>The hackathon numbers were wrong. Now they are not.</h2>
-    <p>The same real KYP.ai export, read by the prototype we won with and by the rebuilt engine.</p></div>
-    <table>
-      <tr><th>On the real one-day export</th><th style="text-align:right">Prototype</th><th style="text-align:right">Now</th><th>Why</th></tr>
-      <tr><td>Copy and paste operations</td><td class="num bad">7,038</td><td class="num good">413</td><td>Step counters repeat on every interaction row; read once per step now</td></tr>
-      <tr><td>Clicks and keystrokes</td><td class="num bad">109,128</td><td class="num good">6,601</td><td>8,978 rows are really 1,858 process steps</td></tr>
-      <tr><td>Cases</td><td class="num bad">27</td><td class="num good">12</td><td>Login names and stray numbers read by OCR became “cases”</td></tr>
-      <tr><td>Top bottleneck</td><td class="num bad">one 2 h gap, seen once</td><td class="num good">five signals</td><td>An average over a single transition is not evidence</td></tr>
-    </table></div>`,
+  raw: async () => `<div class="slide"><div class="head"><h2>Built for raw task-mining data</h2>
+    <p>The challenge came with exports straight from KYP.ai: every click and keystroke, nothing cleaned. WorkTrace reads them for what they are.</p></div>
+    <div class="facts">
+      <div><strong>Steps, not rows</strong><span>8,978 interaction rows of the real export become 1,858 process steps; each counter is read once.</span></div>
+      <div><strong>Time per interaction</strong><span>Every row carries its duration, so each step splits into typing, clicking, copy-paste and time with no input.</span></div>
+      <div><strong>Footers and broken rows</strong><span>The exporter's “Applied filters” block becomes metadata instead of four extra users.</span></div>
+      <div><strong>IDs read by OCR</strong><span>Shape voting drops noise like “kypidbuser” or “2026”; a Markov model gives untagged steps their case.</span></div>
+      <div><strong>Cases cut by the window</strong><span>Invoices still waiting on the last day do not pose as process deviations.</span></div>
+      <div><strong>Any event log too</strong><span>Case, activity and timestamp columns are found by name, from Celonis, Disco or a spreadsheet.</span></div>
+    </div></div>`,
+  diagnosis: async () => `<div class="slide"><div class="head"><h2>Not just what is slow. Why, and what to do.</h2>
+    <p>Real data: one KYP.ai step is 60% time with no input, and its slowest runs are pauses, not work. The runs to look at are listed.</p></div>
+    <div class="crop"><img src="${await image('kyp-bottlenecks.jpg')}"></div></div>`,
   map: async () => `<div class="slide"><div class="head"><h2>The process as it runs, not as the wiki says</h2>
     <p>Heuristics-miner map with two dials for detail, waiting times on every hand-over, and a BPMN export.</p></div>
     <div class="crop"><img src="${await image('ap-map.jpg')}"></div></div>`,
   bottlenecks: async () => `<div class="slide"><div class="head"><h2>Bottlenecks ranked by evidence, not a threshold</h2>
-    <p>Every score opens into the signals behind it and the plain-language reasons. Gemini can explain any of them.</p></div>
+    <p>Each bottleneck opens into what happens in the step, the causes with their evidence, and the action to take.</p></div>
     <div class="crop"><img src="${await image('ap-bottlenecks.jpg')}"></div></div>`,
   automation: async () => `<div class="slide"><div class="head"><h2>What to automate first, and how</h2>
-    <p>Candidates scored on time, volume, manual input, copy-paste and predictability, with a conservative saving.</p></div>
+    <p>Each candidate comes with the steps the automation would take over, written from what people do today.</p></div>
     <div class="crop"><img src="${await image('ap-automation.jpg')}"></div></div>`,
   people: async () => `<div class="slide"><div class="head"><h2>Fair comparisons between people</h2>
     <p>Speed compared on the same activities, never on raw totals. A day of each person's work at a glance.</p></div>
     <div class="crop"><img src="${await image('ap-people-full.jpg')}"></div></div>`,
   engineering: async () => `<div class="slide"><div class="head"><h2>Real algorithms, small and readable</h2>
-    <p>Python 3.12, pandas, networkx and scikit-learn behind FastAPI. Next.js 16 in front. 28 tests.</p></div>
+    <p>Python 3.12, pandas, networkx and scikit-learn behind FastAPI. Next.js 16 in front. 31 tests.</p></div>
     <div class="facts">
       <div><strong>Steps, not rows</strong><span>Interaction rows collapse into process steps; every counter is read once.</span></div>
       <div><strong>Cases from noisy IDs</strong><span>Shape voting rejects OCR noise; a Markov model attributes untagged steps.</span></div>

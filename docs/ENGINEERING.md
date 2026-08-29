@@ -24,8 +24,7 @@ synthetic.py the synthetic AP team                       people        speed ind
 
 A KYP.ai Activity Sequence Export has one row per interaction (a click, a text entry, a paste), but the step-level
 columns (`Process Step Active Duration`, `Copy No.`, `Clicks No.` …) are repeated on every interaction row of the step.
-The hackathon prototype summed them over rows, which multiplied every counter by the number of interactions.
-Here rows are grouped by `(user, step start, step name)` first and counters are read once per step. Steps split by a
+Summed over rows they would multiply every counter by the number of interactions, so rows are grouped by `(user, step start, step name)` first and counters are read once per step. Steps split by a
 chunk boundary of the streaming reader are joined again. When an export has no counter columns, the interaction types
 are counted instead (and normalised: `Click`, `mouse`, `Text entry`, `text-entry` …).
 
@@ -96,7 +95,33 @@ pattern explains at least 90% of its support, so the list shows whole routines r
 **Unusual cases.** An Isolation Forest runs on log-scaled case features (duration, steps, repeats, waiting share,
 applications); flagged cases are explained by the features with a robust z-score (median and MAD) above 2.5.
 
-## 4. Checking it against ground truth
+## 4. Why a step is slow, and what to do
+
+A score says that a step matters; `mining/diagnosis.py` says why. Every interaction row in a KYP export has its own
+duration, and together they cover the step, so a step's time splits into typing, clicking and scrolling, copy-paste,
+looking at the screen and time with no input. Next to that the diagnosis collects the window titles the step happens
+in, the steps before and after it, the values pasted in (and from where) and copied out (and to where), the quick
+trips to another application, the spread between people, and the slowest runs.
+
+Each measurement that crosses a threshold becomes a cause with its evidence, a concrete action and the hours per day
+or week it concerns, biggest first:
+
+| Cause | Fires when | Suggested fix |
+| --- | --- | --- |
+| Data re-keyed | ≥ 0.5 values per run pasted in from another app | document AI for PDFs and scans, otherwise an integration or import |
+| Results copied on | ≥ 0.5 values per run pasted into a later step | send the result automatically |
+| Look-ups | ≥ 0.5 quick trips (A → B → A in 2 min) per run | bring the information into the main screen |
+| Manual typing | ≥ 5 text entries per run | pre-fill, templates, validation |
+| Nobody working | ≥ 15% of the step without input; breaks of 10+ min counted and listed | find out what people wait for |
+| Slow outliers | p90 ≥ 3 × median; the slow runs' own time split names the reason | depends on what the slow runs are made of |
+| Rework | ≥ 5% of cases come back through the same loop | catch the reason at the first pass |
+| People | slowest person ≥ 1.6 × the fastest on the same step | compare methods, write down the faster one |
+
+Hand-overs get their own causes: approval queues, waiting for an outside reply, work resuming only the next day, and a
+different person continuing the case. Automation candidates also get a blueprint: the steps the automation would take
+over, written from what was observed (trigger, inputs, the screen it fills, where the result goes).
+
+## 5. Checking it against ground truth
 
 The synthetic accounts-payable team has known behaviour planted in it, and `tests/test_end_to_end.py` checks that the
 engine finds it: the approval wait among the top bottlenecks, the missing-PO loop at its planted rate (about 17.5% of
